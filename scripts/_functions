@@ -1,0 +1,139 @@
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+RESET='\033[0m'
+
+# Colored messages (blue is the default)
+# Examples:
+#   m "hello world"
+#   m "hello world" "$GREEN"
+function m () {
+	local COLOR=${2:-$BLUE}
+	echo -e "$COLOR$1$RESET"
+}
+
+function copy_function () {
+	local ORIG_FUNC=$(declare -f $1)
+	local NEWNAME_FUNC="$2${ORIG_FUNC#$1}"
+	eval "$NEWNAME_FUNC"
+}
+
+# git
+
+function git_version () {
+	VERSION=$(git -C "$ROOT" describe --tags --always)
+	REVISION=$(git -C "$ROOT" rev-parse HEAD)
+	TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S %Z")
+}
+
+function github_version () {
+	local REPO=$1
+	curl --silent "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'	
+}
+
+# kubectl
+
+function kubectl_apply_template () {
+	cat "$1" | NAMESPACE=$WORKSPACE envsubst | kubectl apply -f -
+}
+
+function kubectl_delete_template () {
+	cat "$1" | NAMESPACE=$WORKSPACE envsubst | kubectl delete -f - || true
+}
+
+function kubectl_first_pod () {
+	local NAME=$1
+	kubectl get pods --selector="app.kubernetes.io/name=$NAME" --field-selector=status.phase=Running --namespace="$WORKSPACE" \
+		--output=jsonpath={.items[0].metadata.name}
+}
+
+function kubectl_wait_for_deployment () {
+	local NAME=$1
+	kubectl wait "deployments/$NAME" --namespace="$WORKSPACE" \
+		--for=condition=available
+	kubectl_wait_for_pod "$NAME"
+}
+
+function kubectl_wait_for_pod () {
+	local NAME=$1
+	local POD=$(kubectl_first_pod "$NAME")
+	kubectl wait "pods/$POD" --namespace="$WORKSPACE" \
+		--for=condition=ready
+}
+
+function kubectl_cluster_ip () {
+	local NAME=$1
+	kubectl get services "$NAME" --namespace="$WORKSPACE" \
+		--output=jsonpath={.spec.clusterIP}
+}
+
+function kubectl_external_ip () {
+	local NAME=$1
+	kubectl get services "$NAME" --namespace="$WORKSPACE" \
+		--output=jsonpath={.status.loadBalancer.ingress[0].ip}
+}
+
+function kubectl_control_plane_ip () {
+	local NAME=$1
+	local POD=$(kubectl_first_pod "$NAME")
+	kubectl get pods "$POD" --namespace="$WORKSPACE" \
+		--output=jsonpath={.status.podIP}
+}
+
+function kubectl_data_plane_ip () {
+	local NAME=$1
+	local POD=$(kubectl_first_pod "$NAME")
+	kubectl get pods "$POD" --namespace="$WORKSPACE" \
+		--output=jsonpath="{.metadata.annotations['k8s\.v1\.cni\.cncf\.io/networks-status']}" |
+	jq --raw-output .[1].ips[0]
+}
+
+function kubectl_registry_url () {
+	echo $(kubectl get services registry --namespace=kube-system --output=jsonpath={.spec.clusterIP}):80
+}
+
+# install
+
+function install_tool () {
+	local NAME=$1
+	local VERSION=$2
+	local URL=$3
+	local STRIP=${4:-1}
+	local ARCHIVE_PREFIX=$5
+	local EXEC=/usr/bin/$NAME
+
+	if [ -f "$EXEC" ]; then
+		if [ "$FORCE" == true ]; then
+			m "overriding existing \"$EXEC\"..."
+		else
+			m "\"$EXEC\" already exists (use -f to overwrite)"
+			return 0
+		fi
+	fi
+
+	m "downloading $NAME $VERSION..."
+	if [ "${URL: -7}" == .tar.gz ] || [ "${URL: -4}" == .tgz ]; then
+		local ARCHIVE=$(mktemp --suffix=.tar.gz)
+		if wget --quiet --output-document="$ARCHIVE" "$URL"; then
+			if tar --extract --file="$ARCHIVE" --directory=/usr/bin --strip="$STRIP" "$ARCHIVE_PREFIX$NAME"; then
+				rm --force "$ARCHIVE"
+			else
+				m "could not write to \"$EXEC\"" "$RED"
+				rm --force "$ARCHIVE"
+			fi
+		else
+			m "could not download from \"$URL\"" "$RED"
+			return
+		fi
+	else
+		if ! wget --quiet --output-document="$EXEC" "$URL"; then
+			m "could not download from \"$URL\" to \"$EXEC\"" "$RED"
+			return
+		fi
+	fi
+
+	chmod a+x "$EXEC"
+	m "installed \"$EXEC\""
+}
