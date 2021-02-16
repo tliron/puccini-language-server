@@ -1,4 +1,4 @@
-package implementation
+package tosca
 
 import (
 	"github.com/tliron/glsp"
@@ -7,6 +7,9 @@ import (
 
 // protocol.TextDocumentDidOpenFunc signature
 func TextDocumentDidOpen(context *glsp.Context, params *protocol.DidOpenTextDocumentParams) error {
+	go Configure(context, &params.TextDocument.Text)
+	protocol.Trace(context, protocol.MessageTypeInfo, "hi!!!")
+
 	setDocument(params.TextDocument.URI, params.TextDocument.Text)
 	go validateDocumentState(params.TextDocument.URI, context.Notify)
 	return nil

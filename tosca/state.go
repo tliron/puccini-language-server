@@ -1,4 +1,4 @@
-package implementation
+package tosca
 
 import (
 	"sync"

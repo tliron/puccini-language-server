@@ -1,4 +1,4 @@
-package implementation
+package tosca
 
 import (
 	"strings"
@@ -8,7 +8,7 @@ import (
 	urlpkg "github.com/tliron/kutil/url"
 )
 
-var log = logging.MustGetLogger("implementation")
+var log = logging.MustGetLogger("puccini-language-server.tosca")
 
 func findIndex(content string, row int, column int) int {
 	index := 0

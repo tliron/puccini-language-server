@@ -9,7 +9,7 @@ import (
 	serverpkg "github.com/tliron/glsp/server"
 	"github.com/tliron/kutil/util"
 	versionpkg "github.com/tliron/kutil/version"
-	"github.com/tliron/puccini-language-server/implementation"
+	"github.com/tliron/puccini-language-server/tosca"
 )
 
 var logTo string
@@ -38,9 +38,10 @@ var command = &cobra.Command{
 			util.ConfigureLogging(verbose, &logTo)
 		}
 
-		// Don't log Puccini
-		logging.SetLevel(logging.INFO, "puccini.grammars.tosca_v2_0")
-		logging.SetLevel(logging.INFO, "puccini.parser")
+		if verbose > 0 {
+			// Reduce Puccini logging even in verbose mode
+			logging.SetLevel(logging.WARNING, "puccini.*")
+		}
 
 		if version {
 			versionpkg.Print()
@@ -57,7 +58,7 @@ var command = &cobra.Command{
 func Run(protocol string, address string) error {
 	log.Infof("version %s", versionpkg.GitVersion)
 
-	server := serverpkg.NewServer(&implementation.Handler, toolName, verbose > 0)
+	server := serverpkg.NewServer(&tosca.Handler, toolName, verbose > 0)
 
 	switch protocol {
 	case "stdio":

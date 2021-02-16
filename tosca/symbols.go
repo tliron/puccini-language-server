@@ -1,4 +1,4 @@
-package implementation
+package tosca
 
 import (
 	"strings"
@@ -46,7 +46,12 @@ func createSymbols(context *tosca.Context, content string, uri protocol.Document
 			position.Character = 0
 		}
 
-		kind := protocol.SymbolKindObject
+		var kind protocol.SymbolKind
+		if clientCapabilities.SupportsSymbolKind(protocol.SymbolKindObject) {
+			kind = protocol.SymbolKindObject
+		} else {
+			kind = protocol.SymbolKindVariable
+		}
 
 		// TODO: properly detect types
 		if unicode.IsUpper(rune(context.Name[0])) {

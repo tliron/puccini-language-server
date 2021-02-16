@@ -1,4 +1,4 @@
-package implementation
+package tosca
 
 import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
@@ -9,6 +9,8 @@ var Handler protocol.Handler
 func init() {
 	// General Messages
 	Handler.Initialize = Initialize
+	Handler.LogTrace = LogTrace
+	Handler.SetTrace = SetTrace
 
 	// Workspace
 	Handler.WorkspaceDidRenameFiles = WorkspaceDidRenameFiles
@@ -20,5 +22,6 @@ func init() {
 	Handler.TextDocumentDidClose = TextDocumentDidClose
 
 	// Language Features
+	Handler.TextDocumentCompletion = TextDocumentCompletion
 	Handler.TextDocumentDocumentSymbol = TextDocumentDocumentSymbol
 }
