@@ -5,10 +5,25 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
+func getWordAt(content string, position protocol.Position) string {
+	return ""
+}
+
 // protocol.TextDocumentCompletionFunc signature
 // Returns: []CompletionItem | CompletionList | nil
 func TextDocumentCompletion(context *glsp.Context, params *protocol.CompletionParams) (interface{}, error) {
-	return nil, nil
+	var completionItems []protocol.CompletionItem
+	if documentState := getDocumentState(params.TextDocument.URI); (documentState != nil) && (documentState.Problems != nil) {
+		for _, problem := range documentState.Problems.Slice() {
+			if int(params.Position.Line+1) == problem.Row {
+				completionItems = append(completionItems, protocol.CompletionItem{
+					Label: "server",
+				})
+				log.Infof("############ completion!")
+			}
+		}
+	}
+	return completionItems, nil
 }
 
 // protocol.TextDocumentDocumentSymbolFunc signature

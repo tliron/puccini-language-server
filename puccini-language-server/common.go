@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/op/go-logging"
+	"github.com/tliron/kutil/logging"
 )
 
 const toolName = "puccini-language-server"
 
-var log = logging.MustGetLogger(toolName)
+var log = logging.GetLogger(toolName)

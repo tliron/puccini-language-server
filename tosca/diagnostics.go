@@ -27,7 +27,7 @@ func createDiagnostics(problems *problems.Problems, content string) []protocol.D
 		diagnostics[index] = protocol.Diagnostic{
 			Range: protocol.Range{
 				Start: position,
-				End:   positionEol(content, position),
+				End:   position.EndOfLineIn(content),
 			},
 			Severity: &severity,
 			Code:     &protocol.IntegerOrString{Value: problem.Item},

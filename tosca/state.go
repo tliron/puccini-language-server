@@ -13,19 +13,22 @@ import (
 	"github.com/tliron/puccini/tosca/parser"
 )
 
-type DocumentState struct {
-	Symbols     []protocol.SymbolInformation
-	Diagnostics []protocol.Diagnostic
-}
-
 var documentStates sync.Map // protocol.DocumentUri to DocumentState
 
-func validateDocumentState(uri protocol.DocumentUri, notify glsp.NotifyFunc) *DocumentState {
-	documentState, created := _getOrCreateDocumentState(uri)
+func getDocumentState(documentUri protocol.DocumentUri) *DocumentState {
+	if documentState, ok := documentStates.Load(documentUri); ok {
+		return documentState.(*DocumentState)
+	} else {
+		return nil
+	}
+}
+
+func validateDocumentState(documentUri protocol.DocumentUri, notify glsp.NotifyFunc) *DocumentState {
+	documentState, created := _getOrCreateDocumentState(documentUri)
 
 	if created {
 		go notify(protocol.ServerTextDocumentPublishDiagnostics, &protocol.PublishDiagnosticsParams{
-			URI:         uri,
+			URI:         documentUri,
 			Diagnostics: documentState.Diagnostics,
 		})
 	}
@@ -33,16 +36,24 @@ func validateDocumentState(uri protocol.DocumentUri, notify glsp.NotifyFunc) *Do
 	return documentState
 }
 
-func deleteDocumentState(uri protocol.DocumentUri) {
-	documentStates.Delete(uri)
+func deleteDocumentState(documentUri protocol.DocumentUri) {
+	documentStates.Delete(documentUri)
 }
 
-func _getOrCreateDocumentState(uri protocol.DocumentUri) (*DocumentState, bool) {
-	if documentState, ok := documentStates.Load(uri); ok {
+func resetDocumentStates() {
+	documentStates.Range(func(protocolUri interface{}, documentState interface{}) bool {
+		documentStates.Delete(protocolUri)
+		urlpkg.DeregisterInternalURL(documentUriToInternalPath(protocolUri.(protocol.DocumentUri)))
+		return true
+	})
+}
+
+func _getOrCreateDocumentState(documentUri protocol.DocumentUri) (*DocumentState, bool) {
+	if documentState, ok := documentStates.Load(documentUri); ok {
 		return documentState.(*DocumentState), false
 	} else {
-		documentState := _createDocumentState(uri)
-		if existing, loaded := documentStates.LoadOrStore(uri, documentState); loaded {
+		documentState := NewDocumentState(documentUri)
+		if existing, loaded := documentStates.LoadOrStore(documentUri, documentState); loaded {
 			return existing.(*DocumentState), false
 		} else {
 			return documentState, true
@@ -50,56 +61,72 @@ func _getOrCreateDocumentState(uri protocol.DocumentUri) (*DocumentState, bool) 
 	}
 }
 
-func _createDocumentState(uri protocol.DocumentUri) *DocumentState {
-	var documentState DocumentState
+//
+// DocumentState
+//
+
+type DocumentState struct {
+	Content  string
+	Context  *parser.Context
+	Problems *problems.Problems
+
+	DocumentURI protocol.DocumentUri
+	Symbols     []protocol.SymbolInformation
+	Diagnostics []protocol.Diagnostic
+}
+
+func NewDocumentState(documentUri protocol.DocumentUri) *DocumentState {
+	self := DocumentState{DocumentURI: documentUri}
 
 	var err error
 	var url urlpkg.URL
-	var content string
-	var context *parser.Context
 	var serviceTemplate *normal.ServiceTemplate
 	var clout *cloutpkg.Clout
-	var problems *problems.Problems
 
 	urlContext := urlpkg.NewContext()
 	defer urlContext.Release()
 
-	path := uriToInternalPath(uri)
-	content, _ = getDocument(uri)
+	path := documentUriToInternalPath(documentUri)
+	self.Content, _ = getDocument(documentUri)
 
 	if url, err = urlpkg.NewValidInternalURL(path, urlContext); err != nil {
 		log.Errorf("%s", err.Error())
-		documentState.Diagnostics = createDiagnostics(problems, content)
-		return &documentState
+		self.Fill()
+		return &self
 	}
 
-	if context, serviceTemplate, problems, err = parser.Parse2(url, nil, nil); err != nil {
+	if self.Context, serviceTemplate, self.Problems, err = parser.Parse(url, nil, nil); err != nil {
 		log.Errorf("%s", err.Error())
-		documentState.Diagnostics = createDiagnostics(problems, content)
-		documentState.Symbols = createSymbols(context.Root.GetContext(), content, uri)
-		return &documentState
+		self.Fill()
+		return &self
 	}
 
 	log.Debugf("%T", serviceTemplate)
 
-	if clout, err = compiler.Compile(serviceTemplate, true); (err != nil) || !problems.Empty() {
+	if clout, err = compiler.Compile(serviceTemplate, true); (err != nil) || !self.Problems.Empty() {
 		if err != nil {
 			log.Errorf("%s", err.Error())
 		}
-		documentState.Diagnostics = createDiagnostics(problems, content)
-		documentState.Symbols = createSymbols(context.Root.GetContext(), content, uri)
-		return &documentState
+		self.Fill()
+		return &self
 	}
 
-	log.Debugf("%T", clout)
+	compiler.Resolve(clout, self.Problems, urlContext, true, "yaml", true, false, false)
+	if !self.Problems.Empty() {
+		if err != nil {
+			log.Errorf("%s", err.Error())
+		}
+		self.Fill()
+		return &self
+	}
 
-	/*compiler.Resolve(clout, problems, urlContext, true, "yaml", true, false, false)
-	if !problems.Empty() {
-		return nil, nil
-	}*/
+	self.Fill()
+	return &self
+}
 
-	documentState.Diagnostics = createDiagnostics(problems, content)
-	documentState.Symbols = createSymbols(context.Root.GetContext(), content, uri)
-
-	return &documentState
+func (self *DocumentState) Fill() {
+	self.Diagnostics = createDiagnostics(self.Problems, self.Content)
+	if self.Context.Root != nil {
+		self.Symbols = createSymbols(self.Context.Root.GetContext(), self.Content, self.DocumentURI)
+	}
 }

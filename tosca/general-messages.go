@@ -30,6 +30,18 @@ func Initialize(context *glsp.Context, params *protocol.InitializeParams) (inter
 	}, nil
 }
 
+// protocol.InitializedFunc signature
+func Initialized(context *glsp.Context, params *protocol.InitializedParams) error {
+	return nil
+}
+
+// protocol.ShutdownFunc signature
+func Shutdown(context *glsp.Context) error {
+	protocol.SetTraceValue(protocol.TraceValueOff)
+	resetDocumentStates()
+	return nil
+}
+
 // protocol.LogTraceFunc signature
 func LogTrace(context *glsp.Context, params *protocol.LogTraceParams) error {
 	return nil

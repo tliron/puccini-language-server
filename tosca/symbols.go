@@ -1,28 +1,25 @@
 package tosca
 
 import (
-	"strings"
 	"unicode"
 
 	protocol "github.com/tliron/glsp/protocol_3_16"
 	"github.com/tliron/puccini/tosca"
 )
 
-func createSymbols(context *tosca.Context, content string, uri protocol.DocumentUri) []protocol.SymbolInformation {
+func createSymbols(context *tosca.Context, content string, documentUri protocol.DocumentUri) []protocol.SymbolInformation {
 	var symbols []protocol.SymbolInformation
 
 	context.Namespace.Range(func(forType tosca.EntityPtr, entityPtr tosca.EntityPtr) bool {
 		context := tosca.GetContext(entityPtr)
 
 		// Filter out names that not in our document
-		url := context.URL.String()
-		url_ := strings.TrimPrefix(url, "internal:language-server:")
-		if url_ == url {
-			// Doesn't have the prefix
-			return true
-		}
-		if url_ != string(uri) {
-			// Not our URI
+		if documentUri_, ok := urlToDocumentUri(context.URL); ok {
+			if documentUri_ != documentUri {
+				// Not our URI
+				return true
+			}
+		} else {
 			return true
 		}
 
@@ -68,10 +65,10 @@ func createSymbols(context *tosca.Context, content string, uri protocol.Document
 			Name: context.Name,
 			Kind: kind,
 			Location: protocol.Location{
-				URI: uri,
+				URI: documentUri,
 				Range: protocol.Range{
 					Start: position,
-					End:   positionEol(content, position),
+					End:   position.EndOfLineIn(content),
 				},
 			},
 		})

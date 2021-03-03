@@ -20,7 +20,7 @@ func TextDocumentDidChange(context *glsp.Context, params *protocol.DidChangeText
 	if content, ok := getDocument(params.TextDocument.URI); ok {
 		for _, change := range params.ContentChanges {
 			if change_, ok := change.(protocol.TextDocumentContentChangeEvent); ok {
-				startIndex, endIndex := rangeToIndex(content, &change_.Range)
+				startIndex, endIndex := change_.Range.IndexesIn(content)
 				content = content[:startIndex] + change_.Text + content[endIndex:]
 				//log.Debugf("content:\n%s", content)
 			} else if change_, ok := change.(protocol.TextDocumentContentChangeEventWhole); ok {

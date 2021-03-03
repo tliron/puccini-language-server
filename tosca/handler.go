@@ -9,6 +9,8 @@ var Handler protocol.Handler
 func init() {
 	// General Messages
 	Handler.Initialize = Initialize
+	Handler.Initialized = Initialized
+	Handler.Shutdown = Shutdown
 	Handler.LogTrace = LogTrace
 	Handler.SetTrace = SetTrace
 

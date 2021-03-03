@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
-	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
 	"github.com/tebeka/atexit"
 	serverpkg "github.com/tliron/glsp/server"
+	"github.com/tliron/kutil/logging"
 	"github.com/tliron/kutil/util"
 	versionpkg "github.com/tliron/kutil/version"
 	"github.com/tliron/puccini-language-server/tosca"
@@ -33,14 +33,14 @@ var command = &cobra.Command{
 	Short: "Start the Puccini TOSCA language server",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if logTo == "" {
-			util.ConfigureLogging(verbose, nil)
+			logging.Configure(verbose, nil)
 		} else {
-			util.ConfigureLogging(verbose, &logTo)
+			logging.Configure(verbose, &logTo)
 		}
 
 		if verbose > 0 {
 			// Reduce Puccini logging even in verbose mode
-			logging.SetLevel(logging.WARNING, "puccini.*")
+			logging.SetMaxLevel("puccini.*", logging.Warning)
 		}
 
 		if version {
