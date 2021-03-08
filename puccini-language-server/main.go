@@ -1,10 +1,9 @@
 package main
 
 import (
-	_ "net/http/pprof"
-
-	"github.com/tebeka/atexit"
 	"github.com/tliron/kutil/util"
+
+	_ "net/http/pprof"
 
 	_ "github.com/tliron/kutil/logging/simple"
 )
@@ -12,5 +11,5 @@ import (
 func main() {
 	err := command.Execute()
 	util.FailOnError(err)
-	atexit.Exit(0)
+	util.Exit(0)
 }

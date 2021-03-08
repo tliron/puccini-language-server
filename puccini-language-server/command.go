@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/tebeka/atexit"
 	serverpkg "github.com/tliron/glsp/server"
 	"github.com/tliron/kutil/logging"
 	"github.com/tliron/kutil/util"
@@ -45,7 +44,7 @@ var command = &cobra.Command{
 
 		if version {
 			versionpkg.Print()
-			atexit.Exit(0)
+			util.Exit(0)
 			return
 		}
 	},
