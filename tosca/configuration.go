@@ -3,7 +3,7 @@ package tosca
 import (
 	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
-	"github.com/tliron/kutil/format"
+	"github.com/tliron/kutil/transcribe"
 )
 
 type Configuration struct {
@@ -25,6 +25,6 @@ func Configure(context *glsp.Context, scope *protocol.DocumentUri) {
 			},
 		},
 	}, &results)
-	s, _ := format.EncodeJSON(results, "")
+	s, _ := transcribe.EncodeJSON(results, "")
 	log.Errorf("****** %s", s)
 }

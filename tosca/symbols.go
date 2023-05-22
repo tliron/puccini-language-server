@@ -10,7 +10,7 @@ import (
 func createSymbols(context *tosca.Context, content string, documentUri protocol.DocumentUri) []protocol.SymbolInformation {
 	var symbols []protocol.SymbolInformation
 
-	context.Namespace.Range(func(forType tosca.EntityPtr, entityPtr tosca.EntityPtr) bool {
+	context.Namespace.Range(func(entityPtr tosca.EntityPtr) bool {
 		context := tosca.GetContext(entityPtr)
 
 		// Filter out names that not in our document

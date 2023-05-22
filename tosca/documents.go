@@ -3,8 +3,9 @@ package tosca
 import (
 	"strings"
 
+	urlpkg "github.com/tliron/exturl"
 	protocol "github.com/tliron/glsp/protocol_3_16"
-	urlpkg "github.com/tliron/kutil/url"
+	"github.com/tliron/kutil/util"
 )
 
 const INTERNAL_PATH_PREFIX = "language-server:"
@@ -29,7 +30,7 @@ func setDocument(documentUri protocol.DocumentUri, content string) {
 
 func getDocument(documentUri protocol.DocumentUri) (string, bool) {
 	if url, err := urlpkg.NewValidInternalURL(documentUriToInternalPath(documentUri), nil); err == nil {
-		return url.Content, true
+		return util.BytesToString(url.Content), true
 	} else {
 		return "", false
 	}

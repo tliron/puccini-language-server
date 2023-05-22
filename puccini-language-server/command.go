@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/tliron/commonlog"
 	serverpkg "github.com/tliron/glsp/server"
-	"github.com/tliron/kutil/logging"
 	"github.com/tliron/kutil/util"
 	versionpkg "github.com/tliron/kutil/version"
 	"github.com/tliron/puccini-language-server/tosca"
@@ -32,14 +32,14 @@ var command = &cobra.Command{
 	Short: "Start the Puccini TOSCA language server",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if logTo == "" {
-			logging.Configure(verbose, nil)
+			commonlog.Configure(verbose, nil)
 		} else {
-			logging.Configure(verbose, &logTo)
+			commonlog.Configure(verbose, &logTo)
 		}
 
 		if verbose > 0 {
 			// Reduce Puccini logging even in verbose mode
-			logging.SetMaxLevel("puccini.*", logging.Warning)
+			commonlog.SetMaxLevel([]string{"puccini"}, commonlog.Warning)
 		}
 
 		if version {

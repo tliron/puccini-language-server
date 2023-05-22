@@ -5,7 +5,7 @@ import (
 
 	_ "net/http/pprof"
 
-	_ "github.com/tliron/kutil/logging/simple"
+	_ "github.com/tliron/commonlog"
 )
 
 func main() {
